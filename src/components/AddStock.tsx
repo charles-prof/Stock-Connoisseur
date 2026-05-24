@@ -1,6 +1,6 @@
 // src/components/AddStock.tsx
 import React, { useState } from 'react';
-import { query } from '../db/client';
+import { addStock } from '../db/client';
 
 export default function AddStock({ market, onAdd }: { market: string, onAdd: () => void }) {
   const [symbol, setSymbol] = useState('');
@@ -15,7 +15,14 @@ export default function AddStock({ market, onAdd }: { market: string, onAdd: () 
       normalizedSymbol += '.NS';
     }
 
-    await query(`INSERT INTO stocks (symbol, name, market, currency) VALUES ('${normalizedSymbol}', '${name}', '${market}', '${currency}')`);
+    await addStock({ 
+        symbol: normalizedSymbol, 
+        name, 
+        market, 
+        currency, 
+        notes: '', 
+        added_at: new Date().toISOString() 
+    });
     setSymbol('');
     setName('');
     onAdd();

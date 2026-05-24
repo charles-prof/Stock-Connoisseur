@@ -1,33 +1,34 @@
 // src/components/Wishlist.tsx
 import { useState, useEffect } from 'react';
-import { query } from '../db/client';
+import { getStocks, getSnapshots, getEvents } from '../db/client';
 import AddStock from './AddStock';
 import StockCard from './StockCard';
 
 export default function Wishlist({ market }: { market: 'US' | 'IN' }) {
   const [stocks, setStocks] = useState<any[]>([]);
 
-  const loadStocks = async () => {
-    const result = await query(`
-      SELECT 
-        s.symbol, 
-        s.name, 
-        s.market, 
+  const loadStocks = () => {
+    const allStocks = getStocks();
+    const allEvents = getEvents();
+    
+    const formatted = allStocks.filter(s => s.market === market).map(s => {
+      const snapshots = getSnapshots(s.symbol);
+      const latest = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
+      const event = allEvents.find(e => e.symbol === s.symbol);
+      
+      return [
+        s.symbol,
+        s.name,
+        s.market,
         s.currency,
-        sn.price,
-        sn.score,
-        sn.timestamp,
+        latest?.price || null,
+        latest?.score || null,
+        latest?.timestamp || null,
         s.notes,
-        (SELECT event_date FROM events WHERE symbol = s.symbol ORDER BY event_date DESC LIMIT 1) as report_date
-      FROM stocks s
-      LEFT JOIN (
-        SELECT symbol, price, score, timestamp,
-               ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY timestamp DESC) as rn
-        FROM snapshots
-      ) sn ON s.symbol = sn.symbol AND sn.rn = 1
-      WHERE s.market = '${market}'
-    `);
-    setStocks((result as any[]) || []);
+        event?.event_date || null
+      ];
+    });
+    setStocks(formatted);
   };
 
   useEffect(() => { loadStocks(); }, [market]);

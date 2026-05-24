@@ -1,6 +1,6 @@
 // src/components/Calendar.tsx
 import { useState, useEffect } from 'react';
-import { query } from '../db/client';
+import { getEvents } from '../db/client';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -12,14 +12,11 @@ export default function Calendar() {
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const loadEvents = async () => {
+  const loadEvents = () => {
+    const allEvents = getEvents();
     const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const result = await query(`
-      SELECT symbol, event_date 
-      FROM events 
-      WHERE event_date LIKE '${monthStr}%'
-    `);
-    setEvents((result as any[]) || []);
+    const filtered = allEvents.filter(e => e.event_date.startsWith(monthStr));
+    setEvents(filtered);
   };
 
   useEffect(() => {
@@ -61,20 +58,20 @@ export default function Calendar() {
           if (day === null) return <div key={`empty-${index}`} className="calendar-day empty"></div>;
           
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const dayEvents = events.filter(e => e[1] === dateStr);
+          const dayEvents = events.filter(e => e.event_date === dateStr);
 
           return (
             <div key={day} className="calendar-day">
               <span className="day-number">{day}</span>
               <div className="event-dots">
                 {dayEvents.map((e, i) => (
-                  <span key={i} className="dot" title={e[0]}></span>
+                  <span key={i} className="dot" title={e.symbol}></span>
                 ))}
               </div>
               {dayEvents.length > 0 && (
                 <div className="event-labels">
                   {dayEvents.map((e, i) => (
-                    <span key={i} className="event-label">{e[0].split('.')[0]}</span>
+                    <span key={i} className="event-label">{e.symbol.split('.')[0]}</span>
                   ))}
                 </div>
               )}

@@ -1,7 +1,7 @@
 // src/components/StockCard.tsx
 import { useState } from 'react';
 import { syncStock } from '../logic/sync';
-import { query } from '../db/client';
+import { updateStock, deleteStock, updateEvent } from '../db/client';
 import EditModal from './EditModal';
 
 export default function StockCard({ stock, onSync }: { stock: any, onSync: () => void }) {
@@ -14,7 +14,6 @@ export default function StockCard({ stock, onSync }: { stock: any, onSync: () =>
   const notes = stock[7];
   const reportDate = stock[8];
 
-  // Hide common market suffixes for display
   const displaySymbol = symbol.split('.')[0];
 
   const handleSync = async () => {
@@ -23,39 +22,22 @@ export default function StockCard({ stock, onSync }: { stock: any, onSync: () =>
       onSync();
     } catch (error) {
       console.error(error);
-      alert(`Failed to sync ${symbol}. Ensure the ticker is correct (e.g. RELIANCE.NS for Indian stocks).`);
+      alert(`Failed to sync ${symbol}.`);
     }
   };
 
   const handleDelete = async () => {
     if (confirm(`Delete ${symbol} from wishlist?`)) {
-      await query(`DELETE FROM snapshots WHERE symbol = '${symbol}'`);
-      await query(`DELETE FROM events WHERE symbol = '${symbol}'`);
-      await query(`DELETE FROM stocks WHERE symbol = '${symbol}'`);
+      await deleteStock(symbol);
       onSync();
     }
   };
 
   const handleSaveEdit = async (newSymbol: string, newName: string, newNotes: string, newReportDate: string) => {
-    // Update main info
-    await query(`UPDATE stocks SET symbol = '${newSymbol}', name = '${newName}', notes = '${newNotes}' WHERE symbol = '${symbol}'`);
-    
-    // Update related if symbol changed
-    if (newSymbol !== symbol) {
-      await query(`UPDATE snapshots SET symbol = '${newSymbol}' WHERE symbol = '${symbol}'`);
-      await query(`UPDATE events SET symbol = '${newSymbol}' WHERE symbol = '${symbol}'`);
-    }
-
-    // Update or Insert report date event
+    await updateStock(symbol, { symbol: newSymbol, name: newName, notes: newNotes });
     if (newReportDate) {
-      const existing = await query(`SELECT * FROM events WHERE symbol = '${newSymbol}' AND event_type = 'EARNINGS'`);
-      if (existing && (existing as any[]).length > 0) {
-        await query(`UPDATE events SET event_date = '${newReportDate}', notified = 0 WHERE symbol = '${newSymbol}' AND event_type = 'EARNINGS'`);
-      } else {
-        await query(`INSERT INTO events (symbol, event_type, event_date) VALUES ('${newSymbol}', 'EARNINGS', '${newReportDate}')`);
-      }
+      await updateEvent(newSymbol, newReportDate);
     }
-
     setIsEditOpen(false);
     onSync();
   };

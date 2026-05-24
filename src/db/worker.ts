@@ -1,6 +1,6 @@
 // src/db/worker.ts
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { saveDatabase, loadDatabase } from './persist';
+import { loadDatabase } from './persist';
 
 let db: any;
 

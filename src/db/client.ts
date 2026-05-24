@@ -1,30 +1,57 @@
 // src/db/client.ts
-const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+import { loadData, saveData } from './store';
 
-let nextId = 0;
-const pendingRequests = new Map();
+let state: { stocks: any[], snapshots: Record<string, any[]>, events: any[] } = {
+  stocks: [],
+  snapshots: {},
+  events: []
+};
 
-worker.onmessage = (e) => {
-  const { payload, id } = e.data;
-  if (pendingRequests.has(id)) {
-    const { resolve } = pendingRequests.get(id);
-    resolve(payload);
-    pendingRequests.delete(id);
+export const initDb = async () => {
+  state = await loadData();
+};
+
+export const getStocks = () => state.stocks;
+export const getEvents = () => state.events;
+export const getSnapshots = (symbol: string) => state.snapshots[symbol] || [];
+
+export const addStock = async (stock: any) => {
+  state.stocks.push(stock);
+  await saveData(state);
+};
+
+export const updateStock = async (symbol: string, updates: any) => {
+  const idx = state.stocks.findIndex(s => s.symbol === symbol);
+  if (idx !== -1) {
+    state.stocks[idx] = { ...state.stocks[idx], ...updates };
+    await saveData(state);
   }
 };
 
-export const initDb = () => {
-  return new Promise((resolve) => {
-    const id = nextId++;
-    pendingRequests.set(id, { resolve });
-    worker.postMessage({ type: 'init', id });
-  });
+export const deleteStock = async (symbol: string) => {
+  state.stocks = state.stocks.filter(s => s.symbol !== symbol);
+  delete state.snapshots[symbol];
+  state.events = state.events.filter(e => e.symbol !== symbol);
+  await saveData(state);
 };
 
-export const query = (sql: string) => {
-  return new Promise((resolve) => {
-    const id = nextId++;
-    pendingRequests.set(id, { resolve });
-    worker.postMessage({ type: 'query', payload: sql, id });
-  });
+export const addSnapshot = async (symbol: string, snapshot: any) => {
+  if (!state.snapshots[symbol]) state.snapshots[symbol] = [];
+  state.snapshots[symbol].push(snapshot);
+  await saveData(state);
+};
+
+export const addEvent = async (event: any) => {
+  state.events.push(event);
+  await saveData(state);
+};
+
+export const updateEvent = async (symbol: string, date: string) => {
+  const idx = state.events.findIndex(e => e.symbol === symbol);
+  if (idx !== -1) {
+    state.events[idx].event_date = date;
+  } else {
+    state.events.push({ symbol, event_type: 'EARNINGS', event_date: date });
+  }
+  await saveData(state);
 };
