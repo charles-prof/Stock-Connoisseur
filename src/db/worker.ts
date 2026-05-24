@@ -6,21 +6,24 @@ let db: any;
 const initDb = async () => {
   const sqlite3 = await sqlite3InitModule();
   console.log('SQLite3 version:', sqlite3.version.libVersion);
-  console.log('Is secure context:', self.isSecureContext);
-  console.log('SharedArrayBuffer available:', typeof SharedArrayBuffer !== 'undefined');
-
+  
   try {
-    if ('opfs' in sqlite3) {
+    // We'll use the "kvvfs" (Key/Value VFS) which is extremely robust as it 
+    // backs SQLite with the browser's LocalStorage or IndexedDB automatically.
+    // This avoids the strict OPFS requirements while remaining persistent.
+    if ('kvvfs' in sqlite3.oo1) {
+      db = new sqlite3.oo1.JsStorageDb('local');
+      console.log('Using persistent LocalStorage-backed SQLite');
+    } else if ('opfs' in sqlite3) {
       db = new sqlite3.oo1.OpfsDb('/stock_connoisseur.db');
-      console.log('Using OPFS persistence:', db.filename);
+      console.log('Using OPFS persistence');
     } else {
-      console.warn('OPFS not available, falling back to transient storage');
+      console.warn('Persistent VFS not found, using transient storage');
       db = new sqlite3.oo1.DB('/stock_connoisseur.db', 'ct');
     }
   } catch (err) {
-    console.error('Failed to initialize database:', err);
-    // Fallback to in-memory if everything fails
-    db = new sqlite3.oo1.DB();
+    console.error('Failed to initialize persistent database:', err);
+    db = new sqlite3.oo1.DB(); // Final fallback to in-memory
   }
   
   db.exec(`
