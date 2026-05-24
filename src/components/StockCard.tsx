@@ -11,6 +11,8 @@ export default function StockCard({ stock, onSync }: { stock: any, onSync: () =>
   const currency = stock[3];
   const price = stock[4];
   const score = stock[5];
+  const notes = stock[7];
+  const reportDate = stock[8];
 
   // Hide common market suffixes for display
   const displaySymbol = symbol.split('.')[0];
@@ -34,19 +36,26 @@ export default function StockCard({ stock, onSync }: { stock: any, onSync: () =>
     }
   };
 
-  const handleSaveEdit = async (newSymbol: string, newName: string) => {
-    if (newSymbol !== symbol || newName !== name) {
-      // If symbol changed, we need to update related tables due to FK (or just let user know)
-      // For simplicity in MVP, we update the main table. If symbol changes, historical snapshots
-      // stay linked if the DB has ON UPDATE CASCADE, otherwise they might drift.
-      // Our DDL didn't specify CASCADE, so let's handle it manually or stick to name-only for now
-      // Actually, let's just update the stocks table for now as a name change is safest.
-      // If the user wants to change the symbol, it's basically a new stock.
-      await query(`UPDATE stocks SET symbol = '${newSymbol}', name = '${newName}' WHERE symbol = '${symbol}'`);
-      // Update snapshots too to keep them linked
+  const handleSaveEdit = async (newSymbol: string, newName: string, newNotes: string, newReportDate: string) => {
+    // Update main info
+    await query(`UPDATE stocks SET symbol = '${newSymbol}', name = '${newName}', notes = '${newNotes}' WHERE symbol = '${symbol}'`);
+    
+    // Update related if symbol changed
+    if (newSymbol !== symbol) {
       await query(`UPDATE snapshots SET symbol = '${newSymbol}' WHERE symbol = '${symbol}'`);
       await query(`UPDATE events SET symbol = '${newSymbol}' WHERE symbol = '${symbol}'`);
     }
+
+    // Update or Insert report date event
+    if (newReportDate) {
+      const existing = await query(`SELECT * FROM events WHERE symbol = '${newSymbol}' AND event_type = 'EARNINGS'`);
+      if (existing && (existing as any[]).length > 0) {
+        await query(`UPDATE events SET event_date = '${newReportDate}', notified = 0 WHERE symbol = '${newSymbol}' AND event_type = 'EARNINGS'`);
+      } else {
+        await query(`INSERT INTO events (symbol, event_type, event_date) VALUES ('${newSymbol}', 'EARNINGS', '${newReportDate}')`);
+      }
+    }
+
     setIsEditOpen(false);
     onSync();
   };
@@ -62,6 +71,8 @@ export default function StockCard({ stock, onSync }: { stock: any, onSync: () =>
       </div>
       <p className="stock-name">{name}</p>
       
+      {notes && <p className="stock-notes">"{notes}"</p>}
+
       <div className="stock-metrics">
         <div className="metric">
           <span className="label">Price:</span>
@@ -71,6 +82,12 @@ export default function StockCard({ stock, onSync }: { stock: any, onSync: () =>
           <span className="label">Score:</span>
           <span className="value score">{score !== null ? `${Math.round(score)}/100` : '---'}</span>
         </div>
+        {reportDate && (
+          <div className="metric">
+            <span className="label">Reports:</span>
+            <span className="value date">{reportDate}</span>
+          </div>
+        )}
       </div>
 
       <button onClick={handleSync} className="btn-sync">Sync Now</button>
@@ -79,6 +96,8 @@ export default function StockCard({ stock, onSync }: { stock: any, onSync: () =>
         <EditModal 
           symbol={symbol} 
           name={name} 
+          notes={notes}
+          reportDate={reportDate}
           onSave={handleSaveEdit} 
           onClose={() => setIsEditOpen(false)} 
         />

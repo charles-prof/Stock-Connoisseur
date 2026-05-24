@@ -5,12 +5,17 @@ import Wishlist from './components/Wishlist';
 import Calendar from './components/Calendar';
 import './App.css';
 
+import { checkNotifications } from './logic/notifications';
+
 function App() {
   const [activeView, setActiveView] = useState<'US' | 'IN' | 'CALENDAR'>('US');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    initDb().then(() => setLoading(false));
+    initDb().then(() => {
+      setLoading(false);
+      checkNotifications();
+    });
   }, []);
 
   if (loading) return <div className="loading">Loading Database...</div>;

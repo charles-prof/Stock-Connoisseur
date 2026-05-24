@@ -17,8 +17,21 @@ const initDb = async () => {
       name TEXT,
       market TEXT,
       currency TEXT,
+      notes TEXT,
       added_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    -- Migration: Add notes if it doesn't exist
+    PRAGMA table_info(stocks);
+  `);
+
+  // Simple migration check for existing tables
+  const columns = db.exec("PRAGMA table_info(stocks)", { returnValue: 'resultRows' });
+  const hasNotes = columns.some((col: any) => col[1] === 'notes');
+  if (!hasNotes) {
+    db.exec("ALTER TABLE stocks ADD COLUMN notes TEXT;");
+  }
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS snapshots (
       symbol TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,

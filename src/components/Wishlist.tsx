@@ -16,7 +16,9 @@ export default function Wishlist({ market }: { market: 'US' | 'IN' }) {
         s.currency,
         sn.price,
         sn.score,
-        sn.timestamp
+        sn.timestamp,
+        s.notes,
+        (SELECT event_date FROM events WHERE symbol = s.symbol ORDER BY event_date DESC LIMIT 1) as report_date
       FROM stocks s
       LEFT JOIN (
         SELECT symbol, price, score, timestamp,
