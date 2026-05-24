@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { initDb } from './db/client';
 import Wishlist from './components/Wishlist';
 import Calendar from './components/Calendar';

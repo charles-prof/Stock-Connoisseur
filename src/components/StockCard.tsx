@@ -1,5 +1,4 @@
 // src/components/StockCard.tsx
-import React from 'react';
 import { syncStock } from '../logic/sync';
 
 export default function StockCard({ stock, onSync }: { stock: any, onSync: () => void }) {

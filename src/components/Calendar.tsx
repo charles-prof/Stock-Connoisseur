@@ -1,5 +1,4 @@
 // src/components/Calendar.tsx
-import React from 'react';
 
 export default function Calendar() {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);

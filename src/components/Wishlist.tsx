@@ -1,5 +1,5 @@
 // src/components/Wishlist.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { query } from '../db/client';
 import AddStock from './AddStock';
 import StockCard from './StockCard';
@@ -9,7 +9,7 @@ export default function Wishlist({ market }: { market: 'US' | 'IN' }) {
 
   const loadStocks = async () => {
     const result = await query(`SELECT * FROM stocks WHERE market = '${market}'`);
-    setStocks(result || []);
+    setStocks((result as any[]) || []);
   };
 
   useEffect(() => { loadStocks(); }, [market]);

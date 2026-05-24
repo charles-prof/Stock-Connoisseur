@@ -1,5 +1,5 @@
 // src/logic/intimator.ts
-import { StockData } from '../api/yfinance';
+import type { StockData } from '../api/yfinance';
 
 export const calculateScore = (data: StockData): number => {
   let score = 0;

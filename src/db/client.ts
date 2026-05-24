@@ -5,7 +5,7 @@ let nextId = 0;
 const pendingRequests = new Map();
 
 worker.onmessage = (e) => {
-  const { type, payload, id } = e.data;
+  const { payload, id } = e.data;
   if (pendingRequests.has(id)) {
     const { resolve } = pendingRequests.get(id);
     resolve(payload);

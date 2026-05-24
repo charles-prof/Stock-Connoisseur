@@ -14,7 +14,6 @@ export const fetchStockData = async (symbol: string): Promise<StockData> => {
   const response = await fetch(url);
   const data = await response.json();
   const result = data.chart.result[0];
-  const quote = result.indicators.quote[0];
   const adjClose = result.indicators.adjclose[0].adjclose;
   
   // Basic technicals (Simplified for MVP)
